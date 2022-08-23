@@ -22,7 +22,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/admin/product")
-public class CategoryController {
+public class BaseCategoryController {
     @Autowired
     BaseCategory1Service category1Service;
     @Autowired
