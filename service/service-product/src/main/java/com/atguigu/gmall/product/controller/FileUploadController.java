@@ -1,11 +1,11 @@
 package com.atguigu.gmall.product.controller;
 
 import com.atguigu.gmall.common.result.Result;
-import io.minio.MinioClient;
+import com.atguigu.gmall.product.service.FileUploadService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.rmi.MarshalledObject;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -18,13 +18,25 @@ import java.util.Map;
 @RequestMapping("/admin/product")
 public class FileUploadController {
 
+    @Autowired
+    FileUploadService fileUploadService;
+
+    /**
+     * 上传图片带minio
+     * @param file
+     * @return
+     * @throws Exception
+     */
     @PostMapping("/fileUpload")
-    public Result fileUpload(){
-//        MinioClient minioClient = new MinioClient();
-        return Result.ok();
+    public Result fileUpload(MultipartFile file) throws Exception {
+        String url = fileUploadService.fileUpload(file);
+        return Result.ok(url);
     }
 
-//@CookieValue("jsessionid")String jsessionid
+
+
+
+    //@CookieValue("jsessionid")String jsessionid
     @PostMapping("/test")
     public Result test(@RequestParam("name")String name,
                        @RequestParam("password")String password,
