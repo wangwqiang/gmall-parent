@@ -1,32 +1,27 @@
 package com.atguigu.gmall.product.service.impl;
 
-import com.atguigu.gmall.model.product.SkuAttrValue;
-import com.atguigu.gmall.model.product.SkuImage;
-import com.atguigu.gmall.model.product.SkuInfo;
-import com.atguigu.gmall.model.product.SkuSaleAttrValue;
-import com.atguigu.gmall.product.mapper.SkuAttrValueMapper;
-import com.atguigu.gmall.product.mapper.SkuImageMapper;
-import com.atguigu.gmall.product.mapper.SkuSaleAttrValueMapper;
-import com.atguigu.gmall.product.service.SkuAttrValueService;
-import com.atguigu.gmall.product.service.SkuImageService;
-import com.atguigu.gmall.product.service.SkuSaleAttrValueService;
+import com.atguigu.gmall.model.product.*;
+import com.atguigu.gmall.model.to.CategoryViewTo;
+import com.atguigu.gmall.model.to.SkuDetailTo;
+import com.atguigu.gmall.product.mapper.*;
+import com.atguigu.gmall.product.service.*;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.atguigu.gmall.product.service.SkuInfoService;
-import com.atguigu.gmall.product.mapper.SkuInfoMapper;
+import com.sun.xml.internal.bind.v2.TODO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
-* @author wangwenqiang
-* @description 针对表【sku_info(库存单元表)】的数据库操作Service实现
-* @createDate 2022-08-22 20:46:18
-*/
+ * @author wangwenqiang
+ * @description 针对表【sku_info(库存单元表)】的数据库操作Service实现
+ * @createDate 2022-08-22 20:46:18
+ */
 @Service
 public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoMapper, SkuInfo>
-    implements SkuInfoService{
+        implements SkuInfoService {
     @Autowired
     SkuInfoMapper skuInfoMapper;
     @Autowired
@@ -35,27 +30,36 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoMapper, SkuInfo>
     SkuAttrValueService skuAttrValueService;
     @Autowired
     SkuSaleAttrValueService skuSaleAttrValueService;
+    @Autowired
+    BaseCategory3Mapper baseCategory3Mapper;
+    @Autowired
+    SpuSaleAttrService spuSaleAttrService;
+    @Autowired
+    SpuSaleAttrMapper spuSaleAttrMapper;
 
     /**
      * sku上架
+     *
      * @param skuId
      */
     @Override
     public void onSale(Long skuId) {
-        skuInfoMapper.updateIsSale(skuId,1);
+        skuInfoMapper.updateIsSale(skuId, 1);
     }
 
     /**
      * sku下架
+     *
      * @param skuId
      */
     @Override
     public void cancelSale(Long skuId) {
-        skuInfoMapper.updateIsSale(skuId,0);
+        skuInfoMapper.updateIsSale(skuId, 0);
     }
 
     /**
      * 添加sku
+     *
      * @param skuInfo
      */
     @Override
@@ -83,6 +87,41 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoMapper, SkuInfo>
         }
         skuSaleAttrValueService.saveBatch(skuSaleAttrValueList);
 
+    }
+
+    /**
+     * 查询sku详情信息
+     *
+     * @param skuId
+     * @return
+     */
+    @Override
+    public SkuDetailTo getSkuDetail(Long skuId) {
+        SkuDetailTo skuDetailTo = new SkuDetailTo();
+        //1.查询skuInfo基本信息
+        SkuInfo skuInfo = skuInfoMapper.selectById(skuId);
+        skuDetailTo.setSkuInfo(skuInfo);
+        //图片列表
+        List<SkuImage> skuImageList = skuImageService.selectImageList(skuId);
+        skuInfo.setSkuImageList(skuImageList);
+        //2.价格
+        BigDecimal price = get1010Price(skuId);
+        skuDetailTo.setPrice(price);
+        //3.查询三级分类
+        CategoryViewTo categoryViewTo = baseCategory3Mapper.getCategory(skuInfo.getCategory3Id());
+        skuDetailTo.setCategoryViewTo(categoryViewTo);
+        //4.查询spuSaleAttrList
+        List<SpuSaleAttr> spuSaleAttrAndValue = spuSaleAttrMapper.getSpuSaleAttrAndValueMarkSku(skuInfo.getSpuId(),skuId);
+        skuDetailTo.setSpuSaleAttrList(spuSaleAttrAndValue);
+
+
+        return skuDetailTo;
+    }
+
+    @Override
+    public BigDecimal get1010Price(Long skuId) {
+        BigDecimal price = skuInfoMapper.get1010Price(skuId);
+        return price;
     }
 }
 

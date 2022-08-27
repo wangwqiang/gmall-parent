@@ -33,8 +33,26 @@
                ssav.id vid,
                ssav.sale_attr_value_name
         from spu_sale_attr ssa
-                     left join spu_sale_attr_value ssav
-                on ssa.spu_id = ssav.spu_id and ssa.base_sale_attr_id = ssav.base_sale_attr_id
+                 left join spu_sale_attr_value ssav
+                           on ssa.spu_id = ssav.spu_id and ssa.base_sale_attr_id = ssav.base_sale_attr_id
         where ssa.spu_id = #{spuId}
+        order by ssa.id, ssav.id
+    </select>
+
+    <select id="getSpuSaleAttrAndValueMarkSku" resultMap="spuSaleAttrAndValue">
+        select ssa.id,
+               ssa.spu_id,
+               ssa.base_sale_attr_id,
+               ssa.sale_attr_name,
+               ssav.id vid,
+               ssav.sale_attr_value_name,
+               IF(skuv.sale_attr_value_id IS NULL, '0', '1') is_checked
+        from spu_sale_attr ssa
+                 left join spu_sale_attr_value ssav
+                           on ssa.spu_id = ssav.spu_id and ssa.base_sale_attr_id = ssav.base_sale_attr_id
+                 LEFT JOIN sku_sale_attr_value skuv
+                           ON ssav.id = skuv.sale_attr_value_id AND skuv.sku_id = #{skuId}
+        where ssa.spu_id = #{spuId}
+        order by ssa.id, ssav.id
     </select>
 </mapper>

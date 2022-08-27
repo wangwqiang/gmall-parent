@@ -27,4 +27,8 @@
         update sku_info set is_sale=#{isSale} where id=#{skuId}
     </update>
 
+    <select id="get1010Price" resultType="java.math.BigDecimal">
+        SELECT price from sku_info where id = #{skuId}
+    </select>
+
 </mapper>

@@ -1,10 +1,12 @@
 package com.atguigu.gmall.product.service.impl;
 
 import com.atguigu.gmall.model.product.BaseCategory3;
+import com.atguigu.gmall.model.to.CategoryTreeTo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.atguigu.gmall.product.service.BaseCategory3Service;
 import com.atguigu.gmall.product.mapper.BaseCategory3Mapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,6 +19,9 @@ import java.util.List;
 @Service
 public class BaseCategory3ServiceImpl extends ServiceImpl<BaseCategory3Mapper, BaseCategory3>
         implements BaseCategory3Service {
+    @Autowired
+    BaseCategory3Mapper baseCategory3Mapper;
+
     /**
      * 查询三级分类列表
      * @param c2Id
@@ -27,6 +32,16 @@ public class BaseCategory3ServiceImpl extends ServiceImpl<BaseCategory3Mapper, B
         List<BaseCategory3> category3List = this.list(new LambdaQueryWrapper<BaseCategory3>()
                 .eq(BaseCategory3::getCategory2Id, c2Id));
         return category3List;
+    }
+
+    /**
+     * 查询首页信息
+     * @return
+     */
+    @Override
+    public List<CategoryTreeTo> getCategoryTree() {
+        List<CategoryTreeTo> list = baseCategory3Mapper.getCategoryTree();
+        return list;
     }
 }
 
