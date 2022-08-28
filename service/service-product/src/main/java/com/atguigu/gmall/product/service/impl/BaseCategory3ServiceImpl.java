@@ -2,6 +2,7 @@ package com.atguigu.gmall.product.service.impl;
 
 import com.atguigu.gmall.model.product.BaseCategory3;
 import com.atguigu.gmall.model.to.CategoryTreeTo;
+import com.atguigu.gmall.model.to.CategoryViewTo;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.atguigu.gmall.product.service.BaseCategory3Service;
@@ -42,6 +43,17 @@ public class BaseCategory3ServiceImpl extends ServiceImpl<BaseCategory3Mapper, B
     public List<CategoryTreeTo> getCategoryTree() {
         List<CategoryTreeTo> list = baseCategory3Mapper.getCategoryTree();
         return list;
+    }
+
+    /**
+     * 查询分类
+     * @param c3Id
+     * @return
+     */
+    @Override
+    public CategoryViewTo getCategoryView(Long c3Id) {
+        CategoryViewTo categoryViewTo = baseCategory3Mapper.getCategory(c3Id);
+        return categoryViewTo;
     }
 }
 
