@@ -12,9 +12,14 @@ spring:
     url: jdbc:mysql://192.168.2.108:3306/gmall_product?useSSL=false&characterEncoding=utf-8
     username: root
     password: 123456
-#    设置环境
+
+  redis:
+    host: 192.168.2.108
+    password: 123456
+  #    设置环境
   profiles:
     active: dev
+
 # 打印日志信息
 logging:
   level:

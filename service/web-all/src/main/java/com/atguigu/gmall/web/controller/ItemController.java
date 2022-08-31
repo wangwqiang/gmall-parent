@@ -30,6 +30,9 @@ public class ItemController {
         Result<SkuDetailTo> skuDetail = skuDetailFeignClient.getSkuDetail(skuId);
         if (skuDetail.isOk()) {
             SkuDetailTo data = skuDetail.getData();
+            if (data == null || data.getSkuInfo() == null) {
+                return "item/404";
+            }
             model.addAttribute("skuInfo",data.getSkuInfo());
             model.addAttribute("categoryView",data.getCategoryViewTo());
             model.addAttribute("price",data.getPrice());
