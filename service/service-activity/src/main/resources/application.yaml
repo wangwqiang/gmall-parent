@@ -7,6 +7,10 @@ spring:
       type: web
   datasource:
     driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://192.168.2.108:3306/gmall_activity?useSSL=false&characterEncoding=utf-8
+    url: jdbc:mysql://192.168.2.108:3306/gmall_activity?useSSL=false&characterEncoding=utf-8&serverTimezone=GMT%2B8
     username: root
     password: 123456
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
