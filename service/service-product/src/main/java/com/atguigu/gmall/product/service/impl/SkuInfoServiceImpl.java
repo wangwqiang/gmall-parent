@@ -1,5 +1,6 @@
 package com.atguigu.gmall.product.service.impl;
 
+import com.atguigu.gmall.common.constant.SysRedisConst;
 import com.atguigu.gmall.common.util.Jsons;
 import com.atguigu.gmall.model.product.*;
 import com.atguigu.gmall.model.to.CategoryViewTo;
@@ -9,6 +10,8 @@ import com.atguigu.gmall.product.mapper.*;
 import com.atguigu.gmall.product.service.*;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sun.xml.internal.bind.v2.TODO;
+import org.redisson.api.RBloomFilter;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +43,8 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoMapper, SkuInfo>
     SpuSaleAttrService spuSaleAttrService;
     @Autowired
     SpuSaleAttrMapper spuSaleAttrMapper;
+    @Autowired
+    RedissonClient redissonClient;
 
     /**
      * sku上架
@@ -71,25 +76,30 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoMapper, SkuInfo>
     public void saveSkuInfoAndValue(SkuInfo skuInfo) {
         //添加sku_info
         skuInfoMapper.insert(skuInfo);
+        Long skuId = skuInfo.getId();
         //添加sku_image
         List<SkuImage> skuImageList = skuInfo.getSkuImageList();
         for (SkuImage skuImage : skuImageList) {
-            skuImage.setSkuId(skuInfo.getId());
+            skuImage.setSkuId(skuId);
         }
         skuImageService.saveBatch(skuImageList);
         //添加sku_attr_value
         List<SkuAttrValue> skuAttrValueList = skuInfo.getSkuAttrValueList();
         for (SkuAttrValue skuAttrValue : skuAttrValueList) {
-            skuAttrValue.setSkuId(skuInfo.getId());
+            skuAttrValue.setSkuId(skuId);
         }
         skuAttrValueService.saveBatch(skuAttrValueList);
         //添加sku_sale_attr_value
         List<SkuSaleAttrValue> skuSaleAttrValueList = skuInfo.getSkuSaleAttrValueList();
         for (SkuSaleAttrValue skuSaleAttrValue : skuSaleAttrValueList) {
-            skuSaleAttrValue.setSkuId(skuInfo.getId());
+            skuSaleAttrValue.setSkuId(skuId);
             skuSaleAttrValue.setSpuId(skuInfo.getSpuId());
         }
         skuSaleAttrValueService.saveBatch(skuSaleAttrValueList);
+
+        //把这个skuId放到布隆过滤器中
+        RBloomFilter<Object> filter = redissonClient.getBloomFilter(SysRedisConst.BLOOM_SKUID);
+        filter.add(skuId);
 
     }
 

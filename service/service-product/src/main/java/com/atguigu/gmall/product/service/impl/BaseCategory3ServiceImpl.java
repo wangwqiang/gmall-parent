@@ -1,8 +1,10 @@
 package com.atguigu.gmall.product.service.impl;
 
+import com.atguigu.gmall.common.constant.SysRedisConst;
 import com.atguigu.gmall.model.product.BaseCategory3;
 import com.atguigu.gmall.model.to.CategoryTreeTo;
 import com.atguigu.gmall.model.to.CategoryViewTo;
+import com.atguigu.starter.cache.annotation.GmallCache;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.atguigu.gmall.product.service.BaseCategory3Service;
@@ -39,10 +41,10 @@ public class BaseCategory3ServiceImpl extends ServiceImpl<BaseCategory3Mapper, B
      * 查询首页信息
      * @return
      */
+    @GmallCache(cacheKey = SysRedisConst.CACHE_CATEGORYS) //categorys
     @Override
     public List<CategoryTreeTo> getCategoryTree() {
-        List<CategoryTreeTo> list = baseCategory3Mapper.getCategoryTree();
-        return list;
+        return  baseCategory3Mapper.getCategoryTree();
     }
 
     /**
@@ -52,8 +54,7 @@ public class BaseCategory3ServiceImpl extends ServiceImpl<BaseCategory3Mapper, B
      */
     @Override
     public CategoryViewTo getCategoryView(Long c3Id) {
-        CategoryViewTo categoryViewTo = baseCategory3Mapper.getCategory(c3Id);
-        return categoryViewTo;
+        return baseCategory3Mapper.getCategory(c3Id);
     }
 }
 

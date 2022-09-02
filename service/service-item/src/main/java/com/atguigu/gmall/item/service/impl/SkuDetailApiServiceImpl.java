@@ -11,6 +11,7 @@ import com.atguigu.gmall.model.product.SkuInfo;
 import com.atguigu.gmall.model.product.SpuSaleAttr;
 import com.atguigu.gmall.model.to.CategoryViewTo;
 import com.atguigu.gmall.model.to.SkuDetailTo;
+import com.atguigu.starter.cache.annotation.GmallCache;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -19,9 +20,12 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @author wangwqiang
@@ -40,6 +44,28 @@ public class SkuDetailApiServiceImpl implements SkuDetailApiService {
     StringRedisTemplate redisTemplate;
     @Autowired
     CacheOpsService cacheOpsService;
+
+    //每个skuId，关联一把自己的锁
+    Map<Long, ReentrantLock> lockPool = new ConcurrentHashMap<>();
+    //锁的粒度太大了，把无关的人都锁住了
+    ReentrantLock lock = new ReentrantLock(); //锁的住
+
+    /**
+     * 表达式中的params代表方法的所有参数列表
+     * @param skuId
+     * @return
+     */
+    @GmallCache(
+            cacheKey =SysRedisConst.SKU_INFO_PREFIX+"#{#params[0]}",
+            bloomName = SysRedisConst.BLOOM_SKUID,
+            bloomValue = "#{#params[0]}",
+            lockName = SysRedisConst.LOCK_SKU_DETAIL+"#{#params[0]}"
+    )
+    @Override
+    public SkuDetailTo getSkuDetail(Long skuId) {
+        SkuDetailTo fromRpc = getSkuDetailFromRpc(skuId);
+        return fromRpc;
+    }
 
     /**
      * 查询sku详情信息
@@ -105,8 +131,7 @@ public class SkuDetailApiServiceImpl implements SkuDetailApiService {
         return detailTo;
     }
 
-    @Override
-    public SkuDetailTo getSkuDetail(Long skuId) {
+    public SkuDetailTo getSkuDetailWithCache(Long skuId) {
         String cacheKey = SysRedisConst.SKU_INFO_PREFIX + skuId;
 
         //1.查询缓存
@@ -175,6 +200,7 @@ public class SkuDetailApiServiceImpl implements SkuDetailApiService {
         SkuDetailTo skuDetailTo = Jsons.toObj(jsonStr, SkuDetailTo.class);
         return skuDetailTo;
     }
+
 
 
 }
