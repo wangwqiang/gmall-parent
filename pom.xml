@@ -14,7 +14,7 @@
         <module>server-gateway</module>
         <module>mall-cache-starter</module>
     </modules>
-    <!--合并冲突dev提交-->
+    <!--dev分支测试冲突-->
     <!--引入spring boot 父工程-->
     <parent>
         <groupId>org.springframework.boot</groupId>
