@@ -3,8 +3,8 @@ package com.atguigu.gmall.item.service.impl;
 import com.atguigu.gmall.common.constant.SysRedisConst;
 import com.atguigu.gmall.common.result.Result;
 import com.atguigu.gmall.common.util.Jsons;
+import com.atguigu.gmall.feign.product.SkuProductDetailFeignClient;
 import com.atguigu.gmall.item.cache.CacheOpsService;
-import com.atguigu.gmall.item.feign.SkuDetailFeignClient;
 import com.atguigu.gmall.item.service.SkuDetailApiService;
 import com.atguigu.gmall.model.product.SkuImage;
 import com.atguigu.gmall.model.product.SkuInfo;
@@ -37,7 +37,7 @@ import java.util.concurrent.locks.ReentrantLock;
 @Service
 public class SkuDetailApiServiceImpl implements SkuDetailApiService {
     @Autowired
-    SkuDetailFeignClient skuDetailFeignClient;
+    SkuProductDetailFeignClient skuDetailFeignClient;
     @Autowired
     ThreadPoolExecutor executor;
     @Autowired

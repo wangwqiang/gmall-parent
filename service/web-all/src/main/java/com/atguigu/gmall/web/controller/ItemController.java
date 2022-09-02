@@ -1,8 +1,8 @@
 package com.atguigu.gmall.web.controller;
 
 import com.atguigu.gmall.common.result.Result;
+import com.atguigu.gmall.feign.item.SkuItemDetailFeignClient;
 import com.atguigu.gmall.model.to.SkuDetailTo;
-import com.atguigu.gmall.web.feign.SkuDetailFeignClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @Controller
 public class ItemController {
     @Autowired
-    SkuDetailFeignClient skuDetailFeignClient;
+    SkuItemDetailFeignClient skuDetailFeignClient;
 
     /**
      * sku详情信息

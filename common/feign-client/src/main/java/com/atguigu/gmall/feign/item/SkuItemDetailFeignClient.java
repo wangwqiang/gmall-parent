@@ -1,4 +1,4 @@
-package com.atguigu.gmall.web.feign;
+package com.atguigu.gmall.feign.item;
 
 import com.atguigu.gmall.common.result.Result;
 import com.atguigu.gmall.model.to.SkuDetailTo;
@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 @FeignClient("service-item")
 @RequestMapping("/api/inner/rpc/item")
-public interface SkuDetailFeignClient {
+public interface SkuItemDetailFeignClient {
 
     @GetMapping("/skuDetail/{skuId}")
     Result<SkuDetailTo> getSkuDetail(@PathVariable("skuId") Long skuId);
