@@ -22,6 +22,11 @@ public interface CacheOpsService {
     Object getCacheData(String cacheKey,
                         Type type);
 
+    /**
+     * 延迟双删
+     * @param cacheKey
+     */
+    void delay2Delete(String cacheKey);
 
     /**
      * 布隆过滤器判断是否有这个商品
@@ -58,6 +63,14 @@ public interface CacheOpsService {
      * @param fromRpc
      */
     void saveData(String cacheKey, Object fromRpc);
+
+    /**
+     * 设置缓存时间，单位：秒
+     * @param cacheKey
+     * @param fromRpc
+     * @param dataTtl
+     */
+    void saveData(String cacheKey, Object fromRpc, Long dataTtl);
 
     /**
      * 解锁

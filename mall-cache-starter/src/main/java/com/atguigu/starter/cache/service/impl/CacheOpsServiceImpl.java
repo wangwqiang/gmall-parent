@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.lang.reflect.Type;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -23,6 +25,9 @@ public class CacheOpsServiceImpl implements CacheOpsService {
     StringRedisTemplate redisTemplate;
     @Autowired
     RedissonClient redissonClient;
+
+    //专门执行延迟任务的线程池
+    ScheduledExecutorService scheduledExecutor  = Executors.newScheduledThreadPool(4);
 
     /**
      * 从缓存中获取一个数据，并转成指定类型的对象
@@ -57,6 +62,16 @@ public class CacheOpsServiceImpl implements CacheOpsService {
             }
         });
         return obj;
+    }
+
+    @Override
+    public void delay2Delete(String cacheKey) {
+        redisTemplate.delete(cacheKey);
+        //1.提交一个延迟任务。   专门准备清空缓存的按钮
+        //2.分布式池框架
+        scheduledExecutor.schedule(()->{
+            redisTemplate.delete(cacheKey);
+        },5,TimeUnit.SECONDS);
     }
 
     @Override
@@ -99,6 +114,22 @@ public class CacheOpsServiceImpl implements CacheOpsService {
             redisTemplate.opsForValue().set(cacheKey,
                     str,
                     SysRedisConst.SKU_DETAIL_TTL,
+                    TimeUnit.SECONDS);
+        }
+    }
+
+    @Override
+    public void saveData(String cacheKey, Object fromRpc, Long dataTtl) {
+        if (fromRpc == null) {
+            redisTemplate.opsForValue().set(cacheKey,
+                    SysRedisConst.NULL_VAL,
+                    SysRedisConst.NULL_VAL_TTl,
+                    TimeUnit.SECONDS);
+        }else {
+            String str = Jsons.toStr(fromRpc);
+            redisTemplate.opsForValue().set(cacheKey,
+                    str,
+                    dataTtl,
                     TimeUnit.SECONDS);
         }
     }

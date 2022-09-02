@@ -52,14 +52,16 @@ public class SkuDetailApiServiceImpl implements SkuDetailApiService {
 
     /**
      * 表达式中的params代表方法的所有参数列表
+     *
      * @param skuId
      * @return
      */
     @GmallCache(
-            cacheKey =SysRedisConst.SKU_INFO_PREFIX+"#{#params[0]}",
+            cacheKey = SysRedisConst.SKU_INFO_PREFIX + "#{#params[0]}",
             bloomName = SysRedisConst.BLOOM_SKUID,
             bloomValue = "#{#params[0]}",
-            lockName = SysRedisConst.LOCK_SKU_DETAIL+"#{#params[0]}"
+            lockName = SysRedisConst.LOCK_SKU_DETAIL + "#{#params[0]}",
+            ttl = 60 * 60 * 24 * 7L
     )
     @Override
     public SkuDetailTo getSkuDetail(Long skuId) {
@@ -200,7 +202,6 @@ public class SkuDetailApiServiceImpl implements SkuDetailApiService {
         SkuDetailTo skuDetailTo = Jsons.toObj(jsonStr, SkuDetailTo.class);
         return skuDetailTo;
     }
-
 
 
 }
