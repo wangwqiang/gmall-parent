@@ -1,7 +1,12 @@
 package com.atguigu.gmall.product.service.impl;
+import com.atguigu.gmall.model.list.SearchAttr;
+import com.google.common.collect.Lists;
+import java.util.Date;
 
 import com.atguigu.gmall.common.constant.SysRedisConst;
 import com.atguigu.gmall.common.util.Jsons;
+import com.atguigu.gmall.feign.search.SearchFeignClient;
+import com.atguigu.gmall.model.list.Goods;
 import com.atguigu.gmall.model.product.*;
 import com.atguigu.gmall.model.to.CategoryViewTo;
 import com.atguigu.gmall.model.to.SkuDetailTo;
@@ -45,30 +50,73 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoMapper, SkuInfo>
     SpuSaleAttrMapper spuSaleAttrMapper;
     @Autowired
     RedissonClient redissonClient;
+    @Autowired
+    SearchFeignClient searchFeignClient;
+    @Autowired
+    BaseTrademarkService trademarkService;
 
     /**
      * sku上架
-     *
      * @param skuId
      */
     @Override
     public void onSale(Long skuId) {
         skuInfoMapper.updateIsSale(skuId, 1);
+        //保存到es
+        Goods goods = getGoodsBySkuId(skuId);
+        searchFeignClient.savaGoods(goods);
     }
+
 
     /**
      * sku下架
-     *
      * @param skuId
      */
     @Override
     public void cancelSale(Long skuId) {
         skuInfoMapper.updateIsSale(skuId, 0);
+        //从es中删除商品
+        searchFeignClient.deleteGoods(skuId);
+
+    }
+
+    /**
+     * 根据skuId查询goods详细信息
+     * @param skuId
+     * @return
+     */
+    private Goods getGoodsBySkuId(Long skuId) {
+        SkuInfo skuInfo = skuInfoMapper.selectById(skuId);
+        Goods goods = new Goods();
+        goods.setId(skuId);
+        goods.setDefaultImg(skuInfo.getSkuDefaultImg());
+        goods.setTitle(skuInfo.getSkuName());
+        goods.setPrice(skuInfo.getPrice().doubleValue());
+        goods.setCreateTime(new Date());
+        goods.setTmId(skuInfo.getTmId());
+
+        BaseTrademark trademark = trademarkService.getById(skuInfo.getTmId());
+        goods.setTmName(trademark.getTmName());
+        goods.setTmLogoUrl(trademark.getLogoUrl());
+
+        CategoryViewTo categoryView = baseCategory3Mapper.getCategory(skuInfo.getCategory3Id());
+        goods.setCategory1Id(categoryView.getCategory1Id());
+        goods.setCategory1Name(categoryView.getCategory1Name());
+        goods.setCategory2Id(categoryView.getCategory2Id());
+        goods.setCategory2Name(categoryView.getCategory2Name());
+        goods.setCategory3Id(categoryView.getCategory3Id());
+        goods.setCategory3Name(categoryView.getCategory3Name());
+        //TODO 查询热度分
+        goods.setHotScore(0L);
+
+        //查当前sku所有平台属性名和值
+        List<SearchAttr> attrList = skuAttrValueService.getSkuAttrNameAndValue(skuId);
+        goods.setAttrs(attrList);
+        return goods;
     }
 
     /**
      * 添加sku
-     *
      * @param skuInfo
      */
     @Override
@@ -105,7 +153,6 @@ public class SkuInfoServiceImpl extends ServiceImpl<SkuInfoMapper, SkuInfo>
 
     /**
      * 查询sku详情信息
-     *
      * @param skuId
      * @return
      */

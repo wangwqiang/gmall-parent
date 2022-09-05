@@ -13,5 +13,6 @@ public class SysRedisConst {
     public static final String LOCK_SKU_DETAIL = "lock:sku:detail:";
     public static final long SKU_DETAIL_TTL = 60 * 60 * 24 * 7L;
     public static final String CACHE_CATEGORYS = "categorys";
+    public static final int SEARCH_PAGE_SIZE = 8;
     public static long NULL_VAL_TTl = 60 * 30L;
 }
