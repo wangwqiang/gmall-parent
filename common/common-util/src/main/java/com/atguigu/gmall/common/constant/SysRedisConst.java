@@ -14,5 +14,6 @@ public class SysRedisConst {
     public static final long SKU_DETAIL_TTL = 60 * 60 * 24 * 7L;
     public static final String CACHE_CATEGORYS = "categorys";
     public static final int SEARCH_PAGE_SIZE = 8;
+    public static final String LOGIN_TOKEN = "user:login:";  //后面拼接token
     public static long NULL_VAL_TTl = 60 * 30L;
 }
