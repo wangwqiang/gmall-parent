@@ -43,7 +43,7 @@ public class SkuDetailController {
 //    }
 
     /**
-     * 1.查询基skuInfo本信息
+     * 1.查询skuInfo基本信息
      *
      * @param skuId
      * @return

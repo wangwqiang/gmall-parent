@@ -3,16 +3,20 @@ package com.atguigu.gmall.search.service.impl;
 import com.atguigu.gmall.common.constant.SysRedisConst;
 import com.atguigu.gmall.model.list.Goods;
 import com.atguigu.gmall.model.list.SearchAttr;
-import com.atguigu.gmall.model.vo.search.OrderMapVo;
-import com.atguigu.gmall.model.vo.search.SearchParamVo;
-import com.atguigu.gmall.model.vo.search.SearchResponseVo;
+import com.atguigu.gmall.model.vo.search.*;
 import com.atguigu.gmall.search.repository.GoodsRepository;
 import com.atguigu.gmall.search.service.GoodsService;
 import org.apache.lucene.search.join.ScoreMode;
-import org.assertj.core.util.Lists;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.NestedQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.nested.ParsedNested;
+import org.elasticsearch.search.aggregations.bucket.terms.ParsedLongTerms;
+import org.elasticsearch.search.aggregations.bucket.terms.ParsedStringTerms;
+import org.elasticsearch.search.aggregations.bucket.terms.Terms;
+import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -44,7 +48,6 @@ public class GoodsServiceImpl implements GoodsService {
 
     /**
      * 添加商品到es
-     *
      * @param goods
      */
     @Override
@@ -54,7 +57,6 @@ public class GoodsServiceImpl implements GoodsService {
 
     /**
      * 从es中删除商品
-     *
      * @param skuId
      */
     @Override
@@ -64,7 +66,6 @@ public class GoodsServiceImpl implements GoodsService {
 
     /**
      * 商品检索
-     *
      * @param paramVo
      * @return
      */
@@ -76,8 +77,23 @@ public class GoodsServiceImpl implements GoodsService {
         SearchHits<Goods> goods = esRestTemplate
                 .search(query, Goods.class, IndexCoordinates.of("goods"));
         //3.将搜索结果进行转换
-        SearchResponseVo responseVo = buildSearchResponseResult(goods,paramVo);
+        SearchResponseVo responseVo = buildSearchResponseResult(goods, paramVo);
         return responseVo;
+    }
+
+    /**
+     * 更新热度分
+     * @param skuId
+     * @param score
+     */
+    @Override
+    public void updateHotScore(Long skuId, Long score) {
+        //1.得到商品
+        Goods goods = goodsRepository.findById(skuId).get();
+        //2.更新热度分
+        goods.setHotScore(score);
+        //3.同步到es
+        esRestTemplate.save(goods);
     }
 
     /**
@@ -110,10 +126,12 @@ public class GoodsServiceImpl implements GoodsService {
             vo.setPropsParamList(propsParamList);
         }
 
-        //TODO 4. 所有品牌列表。需要es聚合分析
-        vo.setTrademarkList(Lists.newArrayList());
-        //TODO 5.所有属性列表。 需要es聚合分析
-        vo.setAttrsList(Lists.newArrayList());
+        //4. 所有品牌列表。需要es聚合分析
+        List<TrademarkVo> trademarkVos = buildTrademarkList(goods);
+        vo.setTrademarkList(trademarkVos);
+        //5.所有属性列表。 需要es聚合分析
+        List<AttrVo> attrVoList = buildAttrsList(goods);
+        vo.setAttrsList(attrVoList);
 
         //回显
         //6.返回排序信息 order=1:desc
@@ -158,6 +176,70 @@ public class GoodsServiceImpl implements GoodsService {
     }
 
     /**
+     * 得到所有商品涉及到的属性
+     * @param goods
+     * @return
+     */
+    private List<AttrVo> buildAttrsList(SearchHits<Goods> goods) {
+        List<AttrVo> attrVoList = new ArrayList<>();
+        //1.拿到attrAgg聚合
+        ParsedNested attrAgg = goods.getAggregations().get("attrAgg");
+        //2.拿到attrIdAgg聚合
+        ParsedLongTerms attrIdAgg = attrAgg.getAggregations().get("attrIdAgg");
+        //3.遍历所有属性id
+        for (Terms.Bucket bucket : attrIdAgg.getBuckets()) {
+            AttrVo attrVo = new AttrVo();
+            //1.获取属性id
+            Long attrId = bucket.getKeyAsNumber().longValue();
+            attrVo.setAttrId(attrId);
+            //2.获取属性名
+            ParsedStringTerms attrNameAgg = bucket.getAggregations().get("attrNameAgg");
+            String attrName = attrNameAgg.getBuckets().get(0).getKeyAsString();
+            attrVo.setAttrName(attrName);
+            //3.获取属性值
+            List<String> attrValues = new ArrayList<>();
+            ParsedStringTerms attrValueAgg = bucket.getAggregations().get("attrValueAgg");
+            for (Terms.Bucket valueAggBucket : attrValueAgg.getBuckets()) {
+                String attrValue = valueAggBucket.getKeyAsString();
+                attrValues.add(attrValue);
+            }
+            attrVo.setAttrValueList(attrValues);
+
+            attrVoList.add(attrVo);
+        }
+        return attrVoList;
+    }
+
+    /**
+     * 得到所有商品涉及到的品牌
+     * @param goods
+     * @return
+     */
+    private List<TrademarkVo> buildTrademarkList(SearchHits<Goods> goods) {
+        List<TrademarkVo> trademarkVos = new ArrayList<>();
+        //1.拿到tmIdAgg聚合
+        ParsedLongTerms tmIdAgg = goods.getAggregations().get("tmIdAgg");
+        //2.拿到桶内的数据
+        for (Terms.Bucket bucket : tmIdAgg.getBuckets()) {
+            TrademarkVo trademarkVo = new TrademarkVo();
+            //1.获取品牌id
+            Long tmId = bucket.getKeyAsNumber().longValue();
+            trademarkVo.setTmId(tmId);
+            //2.获取品牌名
+            ParsedStringTerms tmNameAgg = bucket.getAggregations().get("tmNameAgg");
+            String tmName = tmNameAgg.getBuckets().get(0).getKeyAsString();
+            trademarkVo.setTmName(tmName);
+            //3.获取品牌logo
+            ParsedStringTerms tmLogoAgg = bucket.getAggregations().get("tmLogoAgg");
+            String tmLogo = tmLogoAgg.getBuckets().get(0).getKeyAsString();
+            trademarkVo.setTmLogoUrl(tmLogo);
+
+            trademarkVos.add(trademarkVo);
+        }
+        return trademarkVos;
+    }
+
+    /**
      * 制造老连接
      * @param paramVo
      * @return
@@ -167,9 +249,11 @@ public class GoodsServiceImpl implements GoodsService {
         //1.拼接三级分类所有参数
         if (paramVo.getCategory1Id() != null) {
             builder.append("&category1Id=" + paramVo.getCategory1Id());
-        }if (paramVo.getCategory2Id() != null) {
+        }
+        if (paramVo.getCategory2Id() != null) {
             builder.append("&category2Id=" + paramVo.getCategory2Id());
-        }if (paramVo.getCategory3Id() != null) {
+        }
+        if (paramVo.getCategory3Id() != null) {
             builder.append("&category3Id=" + paramVo.getCategory3Id());
         }
 
@@ -202,7 +286,6 @@ public class GoodsServiceImpl implements GoodsService {
 
     /**
      * 根据前端传回的条件构建检索条件
-     *
      * @param paramVo
      * @return
      */
@@ -260,15 +343,22 @@ public class GoodsServiceImpl implements GoodsService {
             //分析排序用哪个字段
             String orderField = "hotScore";
             switch (split[0]) {
-                case "1": orderField = "hotScore";break;
-                case "2": orderField = "price";break;
-                case "3": orderField = "createTime";break;
-                default: orderField = "hotScore";
+                case "1":
+                    orderField = "hotScore";
+                    break;
+                case "2":
+                    orderField = "price";
+                    break;
+                case "3":
+                    orderField = "createTime";
+                    break;
+                default:
+                    orderField = "hotScore";
             }
             Sort sort = Sort.by(orderField);
             if (split[1].equals("asc")) {
                 sort = sort.ascending();
-            }else {
+            } else {
                 sort = sort.descending();
             }
             query.addSort(sort);
@@ -292,8 +382,35 @@ public class GoodsServiceImpl implements GoodsService {
         //=====以上是查询高亮功能=====
 
         //=========聚合分析上面DSL检索到的所有商品涉及了多少种品牌和多少种平台属性
-        //TODO
+        //品牌聚合
+        TermsAggregationBuilder tmIdAgg = AggregationBuilders
+                .terms("tmIdAgg")
+                .field("tmId")
+                .size(1000);
+        //品牌名聚合
+        TermsAggregationBuilder tmNameAgg = AggregationBuilders.terms("tmNameAgg").field("tmName").size(1);
+        //品牌logo聚合
+        TermsAggregationBuilder tmLogoAgg = AggregationBuilders.terms("tmLogoAgg").field("tmLogoUrl").size(1);
 
+        tmIdAgg.subAggregation(tmNameAgg);
+        tmIdAgg.subAggregation(tmLogoAgg);
+        //添加整个品牌的聚合
+        query.addAggregation(tmIdAgg);
+
+        //属性聚合
+        NestedAggregationBuilder attrAgg = AggregationBuilders.nested("attrAgg", "attrs");
+        //属性id聚合
+        TermsAggregationBuilder attrIdAgg = AggregationBuilders.terms("attrIdAgg").field("attrs.attrId").size(100);
+        //属性名聚合
+        TermsAggregationBuilder attrNameAgg = AggregationBuilders.terms("attrNameAgg").field("attrs.attrName").size(1);
+        //属性值聚合
+        TermsAggregationBuilder attrValueAgg = AggregationBuilders.terms("attrValueAgg").field("attrs.attrValue").size(100);
+
+        attrIdAgg.subAggregation(attrNameAgg);
+        attrIdAgg.subAggregation(attrValueAgg);
+        attrAgg.subAggregation(attrIdAgg);
+        //添加整个属性的聚合
+        query.addAggregation(attrAgg);
         return query;
     }
 

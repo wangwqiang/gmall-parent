@@ -4,6 +4,7 @@ import com.atguigu.gmall.common.constant.SysRedisConst;
 import com.atguigu.gmall.common.result.Result;
 import com.atguigu.gmall.common.util.Jsons;
 import com.atguigu.gmall.feign.product.SkuProductDetailFeignClient;
+import com.atguigu.gmall.feign.search.SearchFeignClient;
 import com.atguigu.gmall.item.cache.CacheOpsService;
 import com.atguigu.gmall.item.service.SkuDetailApiService;
 import com.atguigu.gmall.model.product.SkuImage;
@@ -44,6 +45,8 @@ public class SkuDetailApiServiceImpl implements SkuDetailApiService {
     StringRedisTemplate redisTemplate;
     @Autowired
     CacheOpsService cacheOpsService;
+    @Autowired
+    SearchFeignClient searchFeignClient;
 
     //每个skuId，关联一把自己的锁
     Map<Long, ReentrantLock> lockPool = new ConcurrentHashMap<>();
@@ -70,8 +73,21 @@ public class SkuDetailApiServiceImpl implements SkuDetailApiService {
     }
 
     /**
+     * 更新热度分,100分更新一次
+     * @param skuId
+     */
+    @Override
+    public void updateHotScore(Long skuId) {
+        //从redis获取分数
+        Long increment = redisTemplate.opsForValue().increment(SysRedisConst.SKU_HOTSCORE + skuId);
+        if (increment % 100 == 0) {
+            //同步到es
+            searchFeignClient.updateHotScore(skuId,increment);
+        }
+    }
+
+    /**
      * 查询sku详情信息
-     *
      * @param skuId
      * @return
      */

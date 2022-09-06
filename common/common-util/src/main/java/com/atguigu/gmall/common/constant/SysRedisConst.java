@@ -15,5 +15,6 @@ public class SysRedisConst {
     public static final String CACHE_CATEGORYS = "categorys";
     public static final int SEARCH_PAGE_SIZE = 8;
     public static final String LOGIN_TOKEN = "user:login:";  //后面拼接token
+    public static final String SKU_HOTSCORE = "sku:hotScore:";  //后面拼接skuId
     public static long NULL_VAL_TTl = 60 * 30L;
 }
